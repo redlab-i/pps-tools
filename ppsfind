@@ -1,0 +1,17 @@
+#!/bin/sh
+
+SYS="/sys/class/pps/"
+
+if [ $# -lt 1 ] ; then
+	echo "usage: ppsfind <name>" >&2
+	exit 1
+fi
+
+for d in $(ls $SYS) ; do
+	if grep $1 $SYS/$d/name >& /dev/null || \
+	   grep $1 $SYS/$d/path >& /dev/null ; then
+		echo "$d: name=$(cat $SYS/$d/name) path=$(cat $SYS/$d/path)"
+	fi
+done
+
+exit 0
