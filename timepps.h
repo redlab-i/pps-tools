@@ -186,6 +186,23 @@ static __inline int time_pps_fetch(pps_handle_t handle, const int tsformat,
 	return ret;
 }
 
+#ifdef PPS_KC_BIND
+
+static __inline int time_pps_kcbind(pps_handle_t handle,
+					const int kernel_consumer,
+					const int edge, const int tsformat)
+{
+	struct pps_bind_args __bind_args;
+
+	__bind_args.tsformat = tsformat;
+	__bind_args.edge = edge;
+	__bind_args.consumer = kernel_consumer;
+
+	return ioctl(handle, PPS_KC_BIND, &__bind_args);
+}
+
+#else /* !PPS_KC_BIND */
+
 static __inline int time_pps_kcbind(pps_handle_t handle,
 					const int kernel_consumer,
 					const int edge, const int tsformat)
@@ -195,4 +212,6 @@ static __inline int time_pps_kcbind(pps_handle_t handle,
 	return -1;
 }
 
-#endif				/* _SYS_TIMEPPS_H_ */
+#endif /* PPS_KC_BIND */
+
+#endif /* _SYS_TIMEPPS_H_ */
