@@ -55,7 +55,6 @@ int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 	params.assert_offset.tv_sec = 0;
 	params.assert_offset.tv_nsec = 675;
 	params.mode |= PPS_CAPTUREASSERT | PPS_OFFSETASSERT;
-	params.mode &= ~(PPS_CAPTURECLEAR | PPS_OFFSETCLEAR);
 	ret = time_pps_setparams(*handle, &params);
 	if (ret < 0) {
 		fprintf(stderr, "cannot set parameters (%m)\n");
