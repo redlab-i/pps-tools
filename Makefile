@@ -1,8 +1,9 @@
-TARGETS = ppstest
+TARGETS = ppstest ppsbind ppswatch
 
 CFLAGS += -Wall -O2 -D_GNU_SOURCE
-CFLAGS += -I . -I ../../include/
+CFLAGS += -I .
 CFLAGS += -ggdb
+CFLAGS += -D__N_PPS=18
 
 # -- Actions section --
 
@@ -17,6 +18,9 @@ ifeq (.depend,$(wildcard .depend))
 include .depend
 endif
 
+install : all
+	install -m 755 -t $(DESTDIR)/usr/bin ppsfind $(TARGETS)
+	install -m 644 -t $(DESTDIR)/usr/include timepps.h
 
 # -- Clean section --
 
