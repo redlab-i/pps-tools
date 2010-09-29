@@ -115,7 +115,7 @@ static inline void usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-bBfFac] <ppsdev>\n"
 			"Commands:\n"
-			"  -b   bind kernel PPS consumer (default)\n"
+			"  -b   bind kernel PPS consumer\n"
 			"  -B   unbind kernel PPS consumer\n"
 			"  -f   set kernel NTP PPS flags\n"
 			"  -F   unset kernel NTP PPS flags\n"
@@ -187,8 +187,10 @@ static void parse_args(int argc, char **argv)
 		}
 	}
 
-	if (!(do_bind || do_setflags)) {
-		do_bind = 1;
+	if ((do_bind == 0) && (do_setflags == 0)) {
+		printf("No command specified!\n");
+		usage(argv[0]);
+		exit(1);
 	}
 
 	if (optind == argc - 1) {
