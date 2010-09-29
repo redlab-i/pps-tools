@@ -1,18 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <string.h>
+#include <sys/timex.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <getopt.h>
 
 #include <timepps.h>
 
-/* variables for the command-line parameters */
-static int bind = 1; /* are we binding or unbinding? */
+/* variables for the command-line operations
+ * 0 means no operation
+ * 1 mean enable
+ * 2 means disable
+ */
+static int do_bind = 0;		/* are we binding or unbinding? */
+static int do_setflags = 0;	/* should we manipulate kernel NTP PPS flags? */
+static int opt_edge = PPS_CAPTURECLEAR;	/* which edge to use? */
 static char *device;
 
-int find_source(char *path, pps_handle_t *handle, int *avail_mode)
+static int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 {
 	int ret;
 
@@ -52,9 +61,68 @@ int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 	return 0;
 }
 
-void usage(char *name)
+static inline int bind(pps_handle_t handle, int edge)
 {
-	fprintf(stderr, "usage: %s [-u] <ppsdev>\n", name);
+	return time_pps_kcbind(handle, PPS_KC_HARDPPS, edge, PPS_TSFMT_TSPEC);
+}
+
+static inline int unbind(pps_handle_t handle)
+{
+	return time_pps_kcbind(handle, PPS_KC_HARDPPS, 0, PPS_TSFMT_TSPEC);
+}
+
+static inline int set_flags()
+{
+	struct timex tmx = { .modes = 0 };
+
+	if (adjtimex(&tmx) == -1) {
+		fprintf(stderr, "adjtimex get failed: %s\n", strerror(errno));
+		return -1;
+	}
+
+	tmx.modes = ADJ_STATUS;
+	tmx.status |= (STA_PPSFREQ | STA_PPSTIME);
+
+	if (adjtimex(&tmx) == -1) {
+		fprintf(stderr, "adjtimex set failed: %s\n", strerror(errno));
+		return -1;
+	}
+
+	return 0;
+}
+
+static inline int unset_flags()
+{
+	struct timex tmx = { .modes = 0 };
+
+	if (adjtimex(&tmx) == -1) {
+		fprintf(stderr, "adjtimex get failed: %s\n", strerror(errno));
+		return -1;
+	}
+
+	tmx.modes = ADJ_STATUS;
+	tmx.status &= ~(STA_PPSFREQ | STA_PPSTIME);
+
+	if (adjtimex(&tmx) == -1) {
+		fprintf(stderr, "adjtimex set failed: %s\n", strerror(errno));
+		return -1;
+	}
+
+	return 0;
+}
+
+static inline void usage(char *name)
+{
+	fprintf(stderr, "Usage: %s [-bBfFac] <ppsdev>\n"
+			"Commands:\n"
+			"  -b   bind kernel PPS consumer (default)\n"
+			"  -B   unbind kernel PPS consumer\n"
+			"  -f   set kernel NTP PPS flags\n"
+			"  -F   unset kernel NTP PPS flags\n"
+			"Options:\n"
+			"  -a   use assert edge\n"
+			"  -c   use clear edge (default)\n",
+			name);
 }
 
 static void parse_args(int argc, char **argv)
@@ -66,12 +134,17 @@ static void parse_args(int argc, char **argv)
 		int option_index = 0;
 		static struct option long_options[] =
 		{
-			{"unbind",		no_argument,		0, 'u'},
+			{"bind",		no_argument,		0, 'b'},
+			{"unbind",		no_argument,		0, 'B'},
+			{"set-flags",		no_argument,		0, 'f'},
+			{"unset-flags",		no_argument,		0, 'F'},
+			{"assert",		no_argument,		0, 'a'},
+			{"clear",		no_argument,		0, 'c'},
 			{"help",		no_argument,		0, 'h'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "uh", long_options, &option_index);
+		c = getopt_long(argc, argv, "bBfFach", long_options, &option_index);
 
 		/* detect the end of the options. */
 		if (c == -1)
@@ -79,8 +152,28 @@ static void parse_args(int argc, char **argv)
 
 		switch (c)
 		{
-			case 'u': {
-					bind = 0;
+			case 'b': {
+					do_bind = 1;
+					break;
+				}
+			case 'B': {
+					do_bind = 2;
+					break;
+				}
+			case 'f': {
+					do_setflags = 1;
+					break;
+				}
+			case 'F': {
+					do_setflags = 2;
+					break;
+				}
+			case 'a': {
+					opt_edge = PPS_CAPTUREASSERT;
+					break;
+				}
+			case 'c': {
+					opt_edge = PPS_CAPTURECLEAR;
 					break;
 				}
 			case 'h': {
@@ -92,6 +185,10 @@ static void parse_args(int argc, char **argv)
 					exit(1);
 				}
 		}
+	}
+
+	if (!(do_bind || do_setflags)) {
+		do_bind = 1;
 	}
 
 	if (optind == argc - 1) {
@@ -114,7 +211,29 @@ int main(int argc, char *argv[])
 	if (find_source(device, &handle, &avail_mode) < 0)
 		exit(EXIT_FAILURE);
 
-	time_pps_kcbind(handle, PPS_KC_HARDPPS, bind ? PPS_CAPTURECLEAR : 0, PPS_TSFMT_TSPEC);
+	if (do_setflags == 2)
+		if (unset_flags() < 0) {
+			fprintf(stderr, "Failed to unset flags!\n");
+			exit(EXIT_FAILURE);
+		}
+
+	if (do_bind == 2)
+		if (bind(handle, 0) < 0) {
+			fprintf(stderr, "Unbind failed: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+	if (do_bind == 1)
+		if (bind(handle, opt_edge) < 0) {
+			fprintf(stderr, "Bind failed: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+	if (do_setflags == 1)
+		if (set_flags() < 0) {
+			fprintf(stderr, "Failed to set flags!\n");
+			exit(EXIT_FAILURE);
+		}
 
 	time_pps_destroy(handle);
 
