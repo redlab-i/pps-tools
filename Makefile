@@ -1,4 +1,4 @@
-TARGETS = ppstest ppsbind ppswatch
+TARGETS = ppstest ppsctl ppswatch
 
 CFLAGS += -Wall -O2 -D_GNU_SOURCE
 CFLAGS += -I .
