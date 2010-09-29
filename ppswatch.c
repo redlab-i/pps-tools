@@ -84,7 +84,6 @@ int fetch_source(pps_handle_t handle, int avail_mode)
 	int ret;
 	long div;
 
-retry:
 	if (avail_mode & PPS_CANWAIT) /* waits for the next event */
 		ret = time_pps_fetch(handle, PPS_TSFMT_TSPEC, &infobuf,
 				   &timeout);
@@ -94,9 +93,8 @@ retry:
 				   &timeout);
 	}
 	if (ret < 0) {
-		if (ret == -EINTR) {
-			fprintf(stderr, "time_pps_fetch() got a signal!\n");
-			goto retry;
+		if (errno == EINTR) {
+			return -1;
 		}
 
 		fprintf(stderr, "time_pps_fetch() error %d (%m)\n", ret);
@@ -227,6 +225,7 @@ int main(int argc, char *argv[])
 	pps_handle_t handle;
 	int avail_mode;
 	struct sigaction sigact;
+	int ret;
 
 	/* Check the command line */
 	parse_args(argc, argv);
@@ -245,14 +244,18 @@ int main(int argc, char *argv[])
 	sigaction(SIGQUIT, &sigact, NULL);
 
 	/* loop, printing the most recent timestamp every second or so */
-	while (1)
-		if (fetch_source(handle, avail_mode) < 0 && errno != ETIMEDOUT)
-			exit(EXIT_FAILURE);
+	while (1) {
+		ret = fetch_source(handle, avail_mode);
+		if (ret < 0 && errno == EINTR) {
+			ret = 0;
+			break;
+		}
+		if (ret < 0 && errno != ETIMEDOUT)
+			break;
+	}
 	
 	time_pps_destroy(handle);
 
-	print_stats();
-
-	return 0;
+	return ret;
 }
 
