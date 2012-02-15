@@ -118,6 +118,7 @@ retry:
 	       infobuf.assert_sequence,
 	       infobuf.clear_timestamp.tv_sec,
 	       infobuf.clear_timestamp.tv_nsec, infobuf.clear_sequence);
+	fflush(stdout);
 
 	return 0;
 }
