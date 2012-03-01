@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <timepps.h>
+#include <sys/timepps.h>
 
 int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 {

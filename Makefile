@@ -20,11 +20,11 @@ endif
 
 install : all
 	install -m 755 -t $(DESTDIR)/usr/bin ppsfind $(TARGETS)
-	install -m 644 -t $(DESTDIR)/usr/include timepps.h
+	install -m 644 -t $(DESTDIR)/usr/include/sys timepps.h
 
 uninstall :
 	for f in $(TARGETS); do rm $(DESTDIR)/usr/bin/$$f; done
-	rm $(DESTDIR)/usr/include/timepps.h
+	rm $(DESTDIR)/usr/include/sys/timepps.h
 
 # -- Clean section --
 

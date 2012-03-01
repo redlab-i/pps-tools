@@ -23,7 +23,7 @@
 #include <getopt.h>
 #include <signal.h>
 
-#include <timepps.h>
+#include <sys/timepps.h>
 
 /* variables for the command-line parameters */
 static char *device;
