@@ -25,7 +25,7 @@
 #include <sys/stat.h>
 #include <getopt.h>
 
-#include <sys/timepps.h>
+#include "timepps.h"
 
 /* variables for the command-line operations
  * 0 means no operation
