@@ -19,6 +19,7 @@
 #define _SYS_TIMEPPS_H_
 
 #include <errno.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
