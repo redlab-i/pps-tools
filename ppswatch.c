@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <signal.h>
+#include <math.h>
 
 #include "timepps.h"
 
@@ -35,6 +36,8 @@ static int total = 0;
 static int overflows = 0;
 static int max_unsync = 0;
 static int max_divergence = 0;
+static double mean = 0.0;
+static double M2 = 0.0;
 
 int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 {
@@ -99,6 +102,7 @@ int fetch_source(pps_handle_t handle, int avail_mode)
 	pps_info_t infobuf;
 	int ret;
 	long div;
+	double delta, delta2;
 
 	if (avail_mode & PPS_CANWAIT) /* waits for the next event */
 		ret = time_pps_fetch(handle, PPS_TSFMT_TSPEC, &infobuf,
@@ -132,6 +136,10 @@ int fetch_source(pps_handle_t handle, int avail_mode)
 
 	total++;
 	div = ts.tv_nsec;
+	delta = div - mean;
+	mean += delta / total;
+	delta2 = div - mean;
+	M2 += delta * delta2;
 	if (div < 0)
 		div = -div;
 	if (max_divergence < div)
@@ -230,6 +238,8 @@ void print_stats()
 		printf("Maximum unsynchronized time: %d\n", max_unsync);
 	}
 	printf("Maximum divergence: %d\n", max_divergence);
+	printf("Mean value: %g\n", mean);
+	printf("Standard deviation: %g\n", sqrt(M2 / total));
 }
 
 static void sighandler_exit(int signum) {

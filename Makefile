@@ -4,6 +4,7 @@ CFLAGS += -Wall -O2 -D_GNU_SOURCE
 CFLAGS += -I .
 CFLAGS += -ggdb
 CFLAGS += -D__N_PPS=18
+LDFLAGS += -lm
 
 # -- Actions section --
 
