@@ -69,10 +69,6 @@ static int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 		fprintf(stderr, "cannot CAPTUREASSERT\n");
 		return -1;
 	}
-	if ((*avail_mode & PPS_OFFSETASSERT) == 0) {
-		fprintf(stderr, "cannot OFFSETASSERT\n");
-		return -1;
-	}
 
 	return 0;
 }
