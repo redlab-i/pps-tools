@@ -23,6 +23,8 @@
 
 #include "timepps.h"
 
+static struct timespec offset_assert = {0, 0};
+
 int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 {
 	pps_params_t params;
@@ -56,21 +58,19 @@ int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 		fprintf(stderr, "cannot CAPTUREASSERT\n");
 		return -1;
 	}
-	if ((*avail_mode & PPS_OFFSETASSERT) == 0) {
-		fprintf(stderr, "cannot OFFSETASSERT\n");
-		return -1;
-	}
 
-	/* Capture assert timestamps, and compensate for a 675 nsec
-	 * propagation delay */
+	/* Capture assert timestamps */
 	ret = time_pps_getparams(*handle, &params);
 	if (ret < 0) {
 		fprintf(stderr, "cannot get parameters (%m)\n");
 		return -1;
 	}
-	params.assert_offset.tv_sec = 0;
-	params.assert_offset.tv_nsec = 675;
-	params.mode |= PPS_CAPTUREASSERT | PPS_OFFSETASSERT;
+	params.mode |= PPS_CAPTUREASSERT;
+	/* Override any previous offset if possible */
+	if ((*avail_mode & PPS_OFFSETASSERT) != 0) {
+		params.mode |= PPS_OFFSETASSERT;
+		params.assert_offset = offset_assert;
+	}
 	ret = time_pps_setparams(*handle, &params);
 	if (ret < 0) {
 		fprintf(stderr, "cannot set parameters (%m)\n");
