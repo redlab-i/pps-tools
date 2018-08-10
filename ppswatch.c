@@ -14,6 +14,7 @@
  *   GNU General Public License for more details.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,6 +39,8 @@ static int max_unsync = 0;
 static int max_divergence = 0;
 static double mean = 0.0;
 static double M2 = 0.0;
+
+static volatile bool quit = false;
 
 int find_source(char *path, pps_handle_t *handle, int *avail_mode)
 {
@@ -112,8 +115,8 @@ int fetch_source(pps_handle_t handle, int avail_mode)
 		ret = time_pps_fetch(handle, PPS_TSFMT_TSPEC, &infobuf,
 				   &timeout);
 	}
-	if (ret < 0) {
-		if (errno == EINTR) {
+	if (ret < 0 || quit) {
+		if (errno == EINTR || quit) {
 			return -1;
 		}
 
@@ -244,6 +247,7 @@ void print_stats()
 
 static void sighandler_exit(int signum) {
 	print_stats();
+	quit = true;
 }
 
 int main(int argc, char *argv[])
@@ -272,7 +276,7 @@ int main(int argc, char *argv[])
 	/* loop, printing the most recent timestamp every second or so */
 	while (1) {
 		ret = fetch_source(handle, avail_mode);
-		if (ret < 0 && errno == EINTR) {
+		if ((ret < 0 && errno == EINTR) || quit) {
 			ret = 0;
 			break;
 		}
