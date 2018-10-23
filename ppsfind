@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ppsfind -- find pps device by name
 #
 # Copyright (C) 2005-2007   Rodolfo Giometti <giometti@linux.it>
