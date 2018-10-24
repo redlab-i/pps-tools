@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ppsfind -- find pps device by name
 #
 # Copyright (C) 2005-2007   Rodolfo Giometti <giometti@linux.it>
@@ -15,16 +15,14 @@
 
 SYS="/sys/class/pps/"
 
-if [ $# -lt 1 ] ; then
+if [ $# -ne 1 ] ; then
 	echo "usage: ppsfind <name>" >&2
 	exit 1
 fi
 
-for d in $(ls $SYS) ; do
-	if grep $1 $SYS/$d/name >& /dev/null || \
-	   grep $1 $SYS/$d/path >& /dev/null ; then
-		echo "$d: name=$(cat $SYS/$d/name) path=$(cat $SYS/$d/path)"
-	fi
+for dev in $SYS/* ; do
+	grep -q "$1" "$dev/name" || grep -q "$1" "$dev/path" && \
+	   echo "$(basename "$dev"): name=$(cat $dev/name) path=$(cat $dev/path)"
 done
 
 exit 0
