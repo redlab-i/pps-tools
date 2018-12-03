@@ -19,8 +19,8 @@ include .depend
 endif
 
 install : all
-	install -m 755 -t $(DESTDIR)/usr/bin ppsfind $(TARGETS)
-	install -m 644 -t $(DESTDIR)/usr/include/sys timepps.h
+	install -D -m 755 -t $(DESTDIR)/usr/bin ppsfind $(TARGETS)
+	install -D -m 644 -t $(DESTDIR)/usr/include/sys timepps.h
 
 uninstall :
 	for f in $(TARGETS); do rm $(DESTDIR)/usr/bin/$$f; done
