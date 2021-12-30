@@ -34,6 +34,7 @@
  */
 static int do_bind = 0;		/* are we binding or unbinding? */
 static int do_setflags = 0;	/* should we manipulate kernel NTP PPS flags? */
+static int do_echo = 0;         /* turn on/off PPS echo function*/
 static int opt_edge = PPS_CAPTURECLEAR;	/* which edge to use? */
 static char *device;
 
@@ -123,6 +124,56 @@ static inline int unset_flags()
 	return 0;
 }
 
+static inline int enable_echo(pps_handle_t handle, int edge)
+{
+
+	pps_params_t params;
+	int ret;
+	int avail_mode;
+
+	/* Find out what features are supported */
+	ret = time_pps_getcap(handle, &avail_mode);
+	if (ret < 0) {
+		fprintf(stderr, "cannot get capabilities\n");
+		return ret;
+	}
+	if ((avail_mode & edge) == 0) {
+		fprintf(stderr, "Echo on selected edge unsupported\n");
+		return -1;
+	}
+
+	ret = time_pps_getparams(handle, &params);
+	if (ret < 0)
+		return ret;
+
+	params.mode |= (edge == PPS_CAPTUREASSERT) ? PPS_ECHOASSERT : PPS_ECHOCLEAR;
+
+	ret = time_pps_setparams(handle, &params);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+static inline int disable_echo(pps_handle_t handle)
+{
+	pps_params_t params;
+	int ret;
+
+	ret = time_pps_getparams(handle, &params);
+	if (ret < 0)
+		return ret;
+
+	params.mode &= ~(PPS_ECHOASSERT | PPS_ECHOCLEAR);
+
+	ret = time_pps_setparams(handle, &params);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+
 static inline void usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-bBfFac] <ppsdev>\n"
@@ -131,6 +182,8 @@ static inline void usage(char *name)
 			"  -B   unbind kernel PPS consumer\n"
 			"  -f   set kernel NTP PPS flags\n"
 			"  -F   unset kernel NTP PPS flags\n"
+                        "  -e   enable PPS echo\n"
+                        "  -E   disable PPS echo\n"
 			"Options:\n"
 			"  -a   use assert edge\n"
 			"  -c   use clear edge (default)\n",
@@ -150,13 +203,15 @@ static void parse_args(int argc, char **argv)
 			{"unbind",		no_argument,		0, 'B'},
 			{"set-flags",		no_argument,		0, 'f'},
 			{"unset-flags",		no_argument,		0, 'F'},
+			{"enable-echo",		no_argument,	0, 'e'},
+			{"disable-echo",	no_argument,	0, 'E'},
 			{"assert",		no_argument,		0, 'a'},
 			{"clear",		no_argument,		0, 'c'},
 			{"help",		no_argument,		0, 'h'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "bBfFach", long_options, &option_index);
+		c = getopt_long(argc, argv, "bBfFeEach", long_options, &option_index);
 
 		/* detect the end of the options. */
 		if (c == -1)
@@ -180,6 +235,14 @@ static void parse_args(int argc, char **argv)
 					do_setflags = 2;
 					break;
 				}
+			case 'e': {
+					do_echo = 1;
+					break;
+				}
+			case 'E': {
+					do_echo = 2;
+					break;
+				}
 			case 'a': {
 					opt_edge = PPS_CAPTUREASSERT;
 					break;
@@ -199,7 +262,7 @@ static void parse_args(int argc, char **argv)
 		}
 	}
 
-	if ((do_bind == 0) && (do_setflags == 0)) {
+	if ((do_bind == 0) && (do_setflags == 0) && (do_echo == 0)) {
 		printf("No command specified!\n");
 		usage(argv[0]);
 		exit(1);
@@ -248,6 +311,19 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Failed to set flags!\n");
 			exit(EXIT_FAILURE);
 		}
+
+	if (do_echo == 2)
+		if (disable_echo(handle) < 0) {
+			fprintf(stderr, "Disable echo failed: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+	if (do_echo == 1)
+		if (enable_echo(handle, opt_edge) < 0) {
+			fprintf(stderr, "Enable echo failed: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
 
 	time_pps_destroy(handle);
 
