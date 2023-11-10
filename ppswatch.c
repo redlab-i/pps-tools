@@ -148,7 +148,7 @@ int fetch_source(pps_handle_t handle, int avail_mode)
 	if (max_divergence < div)
 		max_divergence = div;
 	if (div >= margin) {
-		printf("timestamp: %ld, sequence: %ld, offset: % 6ld\n", ts.tv_sec, seq, ts.tv_nsec);
+		printf("timestamp: %lld, sequence: %ld, offset: % 6ld\n", (long long)ts.tv_sec, seq, ts.tv_nsec);
 		fflush(stdout);
 		overflows++;
 		curr_unsync++;

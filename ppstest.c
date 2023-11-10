@@ -110,13 +110,13 @@ retry:
 	}
 
 	printf("source %d - "
-	       "assert %ld.%09ld, sequence: %ld - "
-	       "clear  %ld.%09ld, sequence: %ld\n",
+	       "assert %lld.%09ld, sequence: %ld - "
+	       "clear  %lld.%09ld, sequence: %ld\n",
 	       i,
-	       infobuf.assert_timestamp.tv_sec,
+	       (long long)infobuf.assert_timestamp.tv_sec,
 	       infobuf.assert_timestamp.tv_nsec,
 	       infobuf.assert_sequence,
-	       infobuf.clear_timestamp.tv_sec,
+	       (long long)infobuf.clear_timestamp.tv_sec,
 	       infobuf.clear_timestamp.tv_nsec, infobuf.clear_sequence);
 	fflush(stdout);
 
